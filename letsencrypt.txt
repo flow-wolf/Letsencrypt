@@ -1,0 +1,92 @@
+1.) Create an RSA private key
+	- cd /etc/nginx
+	- openssl genrsa -out server.key 2048
+	- Note:
+		- anything under 2048 bits is weak
+		- public keys can only be obtained for keys of 2048 bits or more
+		- going over 2048 is unecessary and computationally expensive
+
+2.) Create CSR (certificate signing request)
+	- cd /etc/nginx
+	- openssl req -new -key server.key -out server.csr
+	- The common name is the only import bit
+
+3.) Create your virtual host
+	- mkdir /var/www/flow-wolf.org
+	- chmod -R o+rx /var/www/flow-wolf.org
+	- vi /etc/nginx/sites-available/flow-wolf.org
+
+server {
+        listen 80;
+        listen [::]:80;
+
+        root /var/www/flow-wolf.org;
+        index index.html index.htm index.php;
+
+        server_name flow-wolf.org  www.flow-wolf.org;
+
+		location /.well-known/ {
+			alias /var/www/.well-known/;
+		}
+}
+
+	- ln -s /etc/nginx/sites-available/flow-wolf.org /etc/nginx/sites-enabled/flow-wolf.org
+	- service nginx restart
+	- if you encounter errors:
+		- nginx -t
+		- check your server logs /var/logs/nginx
+
+
+
+4.) Configure acme-tiny
+	- get acme-tiny
+		- cd /etc/nginx/
+		- wget https://raw.githubusercontent.com/diafygi/acme-tiny/master/acme_tiny.py
+	- create the directory for letsencrypt
+		- mkdir /var/www/.well-known
+		- mkdir /var/www/.well-known/acme-challenge
+		- chmod -R o+rx /var/www/.well-known
+	- create a special account key for let's encrypt
+		- cd /etc/nginx/
+		- openssl genrsa -out letsencrypt.key 2048
+	- get the public certificate
+		- cd /etc/nginx/
+		- acme_tiny.py --account-key letsencrypt.key --csr server.csr --acme-dir /var/www/.well-known/acme-challenge/ > server.crt
+	- get the intermediate cert from letsencrypt
+		- cd /etc/nginx/
+		- wget http://cert.int-x3.letsencrypt.org/ -O intermediate.der
+	- convert the .der format to PEM
+		- openssl x509 -in intermediate.der -inform DER -out intermediate.crt -outform PEM
+	- combine the leaf and the intermediate into a single file
+		- cat server.crt intermediate.crt > server-all.crt
+
+
+5.) Enable HTTPS on nginx
+	- nginx uses a weak Diffie-Hellman key excahnge of 1024 bits. Upgrade it to 2048
+		- openssl dhparam -out /etc/nginx/dh-2048.pem 2048
+		- make tea, get some biscuits
+	- vi /etc/nginx/sites-available/flow-wolf.org
+
+# HTTPS (encrypted) server
+server {
+	listen 443 ssl default_server;
+	root /var/www/html;
+	index index.html index.htm;
+
+	ssl_certificate /etc/nginx/server-all.crt;
+	ssl_certificate_key /etc/nginx/server.key;
+	
+	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+	ssl_prefer_server_ciphers on;
+  	ssl_ciphers "ECDHE-RSA-AES128-GCM-SHA256 DHE-RSA-AES128-SHA";
+	
+	ssl_dhparam /etc/nginx/dh-2048.pem;
+	
+	add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+	add_header Content-Security-Policy "upgrade-insecure-requests";
+}
+
+  - service nginx restart
+  - if you encounter errors:
+    - nginx -t
+    - check your server logs /var/logs/nginx
