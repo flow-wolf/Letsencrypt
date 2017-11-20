@@ -90,3 +90,21 @@ server {
   - if you encounter errors:
     - nginx -t
     - check your server logs /var/logs/nginx
+    
+    
+    
+====================================
+
+For ECDSA
+
+openssl ecparam -out private.key -name prime256v1 -genkey
+
+openssl req -new -sha256 -key private.key -out server.csr
+
+letsencrypt -n certonly --agree-tos \
+    --email 'nobody@blahblah.com' \
+    --csr /etc/nginx/server.csr \
+    --cert-path /etc/nginx/cert.pem \
+    --fullchain-path /etc/nginx/fullchain.pem \
+    --webroot -w /var/www/ \
+    -d www.flow-wolf.org
