@@ -1,37 +1,37 @@
-root@ip-10-0-0-165:/home/ubuntu# cat /etc/nginx/sites-available/flow-wolf.org
 server {
-        listen [::]:80 ipv6only=on;
-	server_name flow-wolf.org;
-	
-	allow all;        
-	
-	root /var/www/flow-wolf.org;
-        index index.html index.htm index.php;
-	
-	return 301 https://$host$request_uri;	
+    listen [::]:80 ipv6only=on;
 
-	location /.well-known/ {
-		alias /var/www/.well-known/;
-	}
+    root /var/www/flow-wolf.org;
+    index index.html index.htm index.php;
+
+    server_name flow-wolf.org  www.flow-wolf.org;
+
+    return 301 https://www.flow-wolf.org$request_uri;
+
+    location /.well-known/ {
+    	alias /var/www/.well-known/;
+    }
+    access_log /var/log/nginx/80.access;
+    error_log /var/log/nginx/80.error error;
 }
 server {
-   	listen [::]:443 ipv6only=on ssl;
-   	server_name flow-wolf.org;
-	
-	allow all;
-	
-	root /var/www/flow-wolf.org;
-	index index.php index.html index.htm;
+    listen [::]:443 ssl default_server ipv6only=on;
+    root /var/www/flow-wolf.org;
+    index index.html index.htm;
 
-	ssl_certificate /etc/nginx/server-all.crt;
-	ssl_certificate_key /etc/nginx/server.key;
-	
-	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
-	ssl_prefer_server_ciphers on;
-    	ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256 ECDHE-RSA-AES128-GCM-SHA256 DHE-RSA-AES128-SHA";
-	
-	ssl_dhparam /etc/nginx/dh-2048.pem;
-	
-	add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-	add_header Content-Security-Policy "upgrade-insecure-requests";
+    server_name flow-wolf.org  www.flow-wolf.org;
+
+    ssl_certificate /etc/nginx/fullchain.pem;
+    ssl_certificate_key /etc/nginx/private.key;
+
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256 DHE-ECDSA-AES128-SHA";
+
+    ssl_dhparam /etc/nginx/dh-2048.pem;
+
+    access_log /var/log/nginx/443.access;
+    error_log /var/log/nginx/443.error error;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 }
