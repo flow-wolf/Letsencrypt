@@ -97,11 +97,13 @@ server {
 
 For ECDSA
 
-openssl ecparam -out private.key -name prime256v1 -genkey
+1.) Create the same directories above
 
-openssl req -new -sha256 -key private.key -out server.csr
+2.) openssl ecparam -out private.key -name prime256v1 -genkey
 
-letsencrypt -n certonly --agree-tos \
+3.) openssl req -new -sha256 -key private.key -out server.csr
+
+4.) letsencrypt -n certonly --agree-tos \
     --email 'nobody@blahblah.com' \
     --csr /etc/nginx/server.csr \
     --cert-path /etc/nginx/cert.pem \
